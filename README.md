@@ -20,5 +20,5 @@ Configuration values are in file `.gitmigrate`.
 
 ### Configuration values with defaults
 
-* Detached branch name `.gitmigrate`.
+* Detached branch name `_gitmigrate`.
 * Path to command file(s) is `.gitmigrate.*`. It could be both `.gitmigrate.sh` or `.gitmigrate.py` or `.gitmigrate.d/` directory.
