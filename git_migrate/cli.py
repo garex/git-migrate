@@ -126,7 +126,7 @@ def save_script_step(script, step, detached_branch_name):
     with open(script, 'ab') as f:
         f.write(step + '\n')
     subprocess.call(['git', 'add', script])
-    subprocess.call(['git', 'commit', '-m', pipes.quote('Step {}'.format(step))])
+    subprocess.call(['git', 'commit', '-m', pipes.quote('Step "{}" from script "{}"'.format(step, script))])
     subprocess.call(['git', 'push', 'origin', detached_branch_name])
     os.chdir(current_path)
 
