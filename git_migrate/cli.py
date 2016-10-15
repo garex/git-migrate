@@ -23,7 +23,7 @@ def parse_config():
     config = RawConfigParser()
     config.add_section('core')
     config.read([
-        os.path.join(sys.path[0], '.gitmigrate.dist'),
+        os.path.join(os.path.dirname(__file__), '.gitmigrate.dist'),
         '.gitmigrate'
     ])
     branch = config.get('core', 'detached_branch_name')
@@ -38,7 +38,6 @@ def find_scripts(pathes):
     all = []
     for path in pathes:
         all += glob.glob(path)
-    all.remove('.gitmigrate.dist')
     filtered = filter(os.path.isfile, all)
     return filtered
 
