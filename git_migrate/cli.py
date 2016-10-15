@@ -129,5 +129,3 @@ def save_script_step(script, step, detached_branch_name):
     subprocess.call(['git', 'commit', '-m', pipes.quote('Step "{}" from script "{}"'.format(step, script))])
     subprocess.call(['git', 'push', 'origin', detached_branch_name])
     os.chdir(current_path)
-
-main()
