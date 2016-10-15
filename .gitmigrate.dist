@@ -1,0 +1,7 @@
+[core]
+
+detached_branch_name = _gitmigrate
+
+command_files_path =
+    .gitmigrate.*
+    .gitmigrate.*/*'

@@ -5,39 +5,61 @@ import glob
 import os
 import pipes
 import re
+from ConfigParser import RawConfigParser
+import sys
 
 def main():
-    scripts = find_scripts()
+    config = parse_config()
+    scripts = find_scripts(config['command_files_path'])
 
     if not scripts:
         return
 
-    clone_detached_branch()
-    map(run_script, scripts)
+    clone_detached_branch(config['detached_branch_name'])
+    for script in scripts:
+        run_script(script, config['detached_branch_name'])
 
-def find_scripts():
-    all = glob.glob('.gitmigrate.*') + glob.glob('.gitmigrate.*/*')
+def parse_config():
+    config = RawConfigParser()
+    config.add_section('core')
+    config.read([
+        os.path.join(sys.path[0], '.gitmigrate.dist'),
+        '.gitmigrate'
+    ])
+    branch = config.get('core', 'detached_branch_name')
+    path = config.get('core', 'command_files_path')
+    path = filter(None, [line.strip() for line in path.splitlines()])
+    return {
+        'detached_branch_name': branch,
+        'command_files_path': path
+    }
+
+def find_scripts(pathes):
+    all = []
+    for path in pathes:
+        all += glob.glob(path)
+    all.remove('.gitmigrate.dist')
     filtered = filter(os.path.isfile, all)
     return filtered
 
-def clone_detached_branch():
+def clone_detached_branch(detached_branch_name):
     current_path  = os.getcwd()
     detached_path = get_detached_path(current_path)
 
-    has_branch = has_detached_branch()
+    has_branch = has_detached_branch(detached_branch_name)
 
     subprocess.call(['rm', '-rf', detached_path])
     subprocess.call(['mkdir', detached_path])
     os.chdir(detached_path)
 
     if has_branch:
-        subprocess.call(['git', 'clone', '-b', '_gitmigrate', '--single-branch', current_path, '.'])
+        subprocess.call(['git', 'clone', '-b', detached_branch_name, '--single-branch', current_path, '.'])
     else:
         subprocess.call(['git', 'clone', '--no-checkout', current_path, '.'])
-        subprocess.call(['git', 'checkout', '--orphan', '_gitmigrate'])
+        subprocess.call(['git', 'checkout', '--orphan', detached_branch_name])
         subprocess.call(['git', 'rm', '-rf', '.'])
         subprocess.call(['git', 'commit', '--allow-empty', '-m', 'Root'])
-        subprocess.call(['git', 'push', 'origin', '_gitmigrate'])
+        subprocess.call(['git', 'push', 'origin', detached_branch_name])
 
     os.chdir(current_path)
 
@@ -48,8 +70,8 @@ def get_detached_path(current_path):
         hashlib.md5(current_path).hexdigest()
     )
 
-def has_detached_branch():
-    return is_process_succeed(subprocess.call(['git', 'show-ref', '--verify', '--quiet', 'refs/heads/_gitmigrate']))
+def has_detached_branch(detached_branch_name):
+    return is_process_succeed(subprocess.call(['git', 'show-ref', '--verify', '--quiet', 'refs/heads/' + detached_branch_name]))
 
 def is_process_succeed(code):
     return 0 == code
@@ -57,10 +79,10 @@ def is_process_succeed(code):
 def is_process_failed(code):
     return not is_process_succeed(code)
 
-def run_script(script):
+def run_script(script, detached_branch_name):
     print 'Running script "{}"'.format(script)
 
-    head, steps = parse_diff(script)
+    head, steps = parse_diff(script, detached_branch_name)
     if not steps:
         return
 
@@ -68,7 +90,7 @@ def run_script(script):
         code = execute_step('\n'.join(head + [step]))
         if is_process_failed(code):
             raise RuntimeError('Step "{}" failed'.format(step))
-        save_script_step(script, step)
+        save_script_step(script, step, detached_branch_name)
 
 def parse_script(script):
     with open(script) as f:
@@ -83,8 +105,8 @@ def split_head_steps(lines):
     index = lines.index('') + 1
     return lines[:index], lines[index:]
 
-def parse_diff(script):
-    diff = subprocess.check_output(['git', 'diff', '--no-ext-diff', '--unified=0', '--no-color', '_gitmigrate', 'HEAD', '--', script])
+def parse_diff(script, detached_branch_name):
+    diff = subprocess.check_output(['git', 'diff', '--no-ext-diff', '--unified=0', '--no-color', detached_branch_name, 'HEAD', '--', script])
     lines = [line[1:] for line in diff.splitlines() if is_line_added(line, script)]
     return split_head_steps(lines)
 
@@ -98,7 +120,7 @@ def execute_step(source):
         f.file.close()
         return subprocess.call([f.name])
 
-def save_script_step(script, step):
+def save_script_step(script, step, detached_branch_name):
     current_path  = os.getcwd()
     detached_path = get_detached_path(current_path)
     os.chdir(detached_path)
@@ -106,7 +128,7 @@ def save_script_step(script, step):
         f.write(step + '\n')
     subprocess.call(['git', 'add', script])
     subprocess.call(['git', 'commit', '-m', pipes.quote('Step {}'.format(step))])
-    subprocess.call(['git', 'push', 'origin', '_gitmigrate'])
+    subprocess.call(['git', 'push', 'origin', detached_branch_name])
     os.chdir(current_path)
 
 main()
