@@ -6,7 +6,7 @@ import textwrap
 
 setup(
     name='git-migrate',
-    version='0.3',
+    version='0.3.1',
     description='Execute commands from shell file, storing last successful execution in detached git branch.',
     long_description=textwrap.dedent(open('README.rst', 'r').read()),
     keywords='git migrate shell script',
@@ -30,6 +30,10 @@ setup(
     entry_points = {
         'console_scripts': ['git-migrate=git_migrate.cli:main'],
     },
+
+    install_requires=[
+        'colorama',
+    ],
 
     include_package_data=True,
     zip_safe=False
