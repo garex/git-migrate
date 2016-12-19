@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import tempfile
 import hashlib
 import subprocess
@@ -7,8 +9,11 @@ import pipes
 import re
 from ConfigParser import RawConfigParser
 import sys
+import colorama
+from colorama import Fore, Back, Style
 
 def main():
+    colorama.init()
     config = parse_config()
     scripts = find_scripts(config['command_files_path'])
 
@@ -47,18 +52,18 @@ def clone_detached_branch(detached_branch_name):
 
     has_branch = has_detached_branch(detached_branch_name)
 
-    subprocess.call(['rm', '-rf', detached_path])
-    subprocess.call(['mkdir', detached_path])
+    subprocess.check_output(['rm', '-rf', detached_path])
+    subprocess.check_output(['mkdir', detached_path])
     os.chdir(detached_path)
 
     if has_branch:
-        subprocess.call(['git', 'clone', '-b', detached_branch_name, '--single-branch', current_path, '.'])
+        subprocess.check_output(['git', 'clone', '-b', detached_branch_name, '--single-branch', current_path, '.'], stderr=subprocess.STDOUT)
     else:
-        subprocess.call(['git', 'clone', '--no-checkout', current_path, '.'])
-        subprocess.call(['git', 'checkout', '--orphan', detached_branch_name])
-        subprocess.call(['git', 'rm', '-rf', '.'])
-        subprocess.call(['git', 'commit', '--allow-empty', '-m', 'Root'])
-        subprocess.call(['git', 'push', 'origin', detached_branch_name])
+        subprocess.check_output(['git', 'clone', '--no-checkout', current_path, '.'], stderr=subprocess.STDOUT)
+        subprocess.check_output(['git', 'checkout', '--orphan', detached_branch_name], stderr=subprocess.STDOUT)
+        subprocess.check_output(['git', 'rm', '-rf', '.'], stderr=subprocess.STDOUT)
+        subprocess.check_output(['git', 'commit', '--allow-empty', '-m', 'Root'], stderr=subprocess.STDOUT)
+        subprocess.check_output(['git', 'push', 'origin', detached_branch_name], stderr=subprocess.STDOUT)
 
     os.chdir(current_path)
 
@@ -79,13 +84,14 @@ def is_process_failed(code):
     return not is_process_succeed(code)
 
 def run_script(script, detached_branch_name):
-    print 'Running script "{}"'.format(script)
+    print '{}Running{} {}{}{}{}'.format(Style.DIM, Style.RESET_ALL, Style.BRIGHT, Fore.GREEN, script, Style.RESET_ALL)
 
     head, steps = parse_diff(script, detached_branch_name)
     if not steps:
         return
 
     for step in steps:
+        print '{}…{} {}{}{}{}'.format(Style.DIM, Style.RESET_ALL, Style.NORMAL, Fore.YELLOW, step, Style.RESET_ALL)
         code = execute_step('\n'.join(head + [step]))
         if is_process_failed(code):
             raise RuntimeError('Step "{}" failed'.format(step))
@@ -125,7 +131,10 @@ def save_script_step(script, step, detached_branch_name):
     os.chdir(detached_path)
     with open(script, 'ab') as f:
         f.write(step + '\n')
-    subprocess.call(['git', 'add', script])
-    subprocess.call(['git', 'commit', '-m', pipes.quote('Step "{}" from script "{}"'.format(step, script))])
-    subprocess.call(['git', 'push', 'origin', detached_branch_name])
+    subprocess.check_output(['git', 'add', script], stderr=subprocess.STDOUT)
+    subprocess.check_output(['git', 'commit', '-m', pipes.quote('Step "{}" from script "{}"'.format(step, script))], stderr=subprocess.STDOUT)
+    subprocess.check_output(['git', 'push', 'origin', detached_branch_name], stderr=subprocess.STDOUT)
     os.chdir(current_path)
+
+if __name__ == '__main__':
+    main()
