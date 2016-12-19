@@ -6,7 +6,7 @@ import textwrap
 
 setup(
     name='git-migrate',
-    version='0.3',
+    version='0.3.1',
     description='Execute commands from shell file, storing last successful execution in detached git branch.',
     long_description=textwrap.dedent(open('README.rst', 'r').read()),
     keywords='git migrate shell script',
