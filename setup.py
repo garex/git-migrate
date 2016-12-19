@@ -31,6 +31,10 @@ setup(
         'console_scripts': ['git-migrate=git_migrate.cli:main'],
     },
 
+    install_requires=[
+        'colorama',
+    ],
+
     include_package_data=True,
     zip_safe=False
 )
